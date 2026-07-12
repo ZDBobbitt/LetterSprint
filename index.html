@@ -746,9 +746,60 @@ const LETTER_POOL = (
   'NNOOOOOOOOPPRRRRRRSSSSTTTTTTUUUUVVWWXYYZ'
 ).split('');
 
+const VOWELS = new Set(['A', 'E', 'I', 'O', 'U']);
+const MIN_GRID_VOWELS = 3;
+const MAX_GRID_LETTER_COUNT = 3;
+
 function randomLetter() {
   if (Math.random() < 0.02) return 'QU';
   return LETTER_POOL[Math.floor(Math.random() * LETTER_POOL.length)];
+}
+
+function isVowel(tile) {
+  return VOWELS.has(tile);
+}
+
+function pickGridLetter(counts, mustPickVowel) {
+  for (let attempt = 0; attempt < 120; attempt++) {
+    const tile = randomLetter();
+    if ((counts[tile] || 0) >= MAX_GRID_LETTER_COUNT) continue;
+    if (mustPickVowel && !isVowel(tile)) continue;
+    return tile;
+  }
+
+  const candidates = LETTER_POOL.filter(tile => {
+    if ((counts[tile] || 0) >= MAX_GRID_LETTER_COUNT) return false;
+    return !mustPickVowel || isVowel(tile);
+  });
+
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function shuffleTiles(tiles) {
+  for (let i = tiles.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+  }
+  return tiles;
+}
+
+function generateConstrainedGrid() {
+  const tiles = [];
+  const counts = {};
+  let vowelCount = 0;
+
+  while (tiles.length < 16) {
+    const spacesLeft = 16 - tiles.length;
+    const vowelsNeeded = Math.max(0, MIN_GRID_VOWELS - vowelCount);
+    const mustPickVowel = vowelsNeeded >= spacesLeft;
+    const tile = pickGridLetter(counts, mustPickVowel);
+
+    tiles.push(tile);
+    counts[tile] = (counts[tile] || 0) + 1;
+    if (isVowel(tile)) vowelCount++;
+  }
+
+  return shuffleTiles(tiles);
 }
 
 function tileScore(tile) {
@@ -952,7 +1003,7 @@ function isAdjacent(a, b) {
 
 // ── Grid Generation ───────────────────────────────────────────────
 function generateGrid() {
-  grid = Array.from({length: 16}, () => randomLetter());
+  grid = generateConstrainedGrid();
   renderGrid();
 }
 
@@ -1535,5 +1586,6 @@ window.addEventListener('resize', () => {
   setStatus('Dictionary ready — press Play to start!');
 })();
 </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"d68c70a091ae4040b0885227fbacb054","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
